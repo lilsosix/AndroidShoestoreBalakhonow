@@ -1,5 +1,6 @@
 package com.example.shstore.ui.view
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -8,12 +9,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -23,6 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.example.shstore.R
 import com.example.shstore.ui.theme.ShStoreTheme
 
@@ -36,10 +42,24 @@ fun RegisterScreen(
     var showPassword by remember { mutableStateOf(false) }
     var isTermsAccepted by remember { mutableStateOf(false) }
 
-    val scrollState = rememberScrollState()
+    // Состояние для диалога ошибки
+    var showErrorDialog by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
 
+    val scrollState = rememberScrollState()
+    val context = LocalContext.current
+
+    // Функция для проверки email по заданному паттерну
+    fun isValidEmail(email: String): Boolean {
+        // Паттерн: name@domenname.ru, где имя и доменное имя может состоять только из маленьких букв и цифр,
+        // старший домен только из символов количеством больше двух
+        val emailRegex = "^[a-z0-9]+@[a-z0-9]+\\.[a-z]{3,}$".toRegex()
+        return emailRegex.matches(email)
+    }
+
+    // Валидация формы с использованием кастомной проверки email
     val isFormValid = name.isNotBlank() &&
-            android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() &&
+            isValidEmail(email) &&
             password.length >= 6 &&
             isTermsAccepted
 
@@ -55,13 +75,13 @@ fun RegisterScreen(
         ) {
             Spacer(modifier = Modifier.height(50.dp))
 
-            // Кнопка "Назад" (только для интерфейса, без функционала)
+            // Кнопка "Назад" (без функционала)
             Box(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFF2F2F2))
-                    .clickable { /* Действие не реализовано */ },
+                    .clickable { /* Навигация не реализована */ },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -106,7 +126,7 @@ fun RegisterScreen(
             StyledTextField(
                 value = name,
                 onValueChange = { name = it },
-                placeholder = "Например: Иван Иванов"
+                placeholder = "Иван Иванов"
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -121,8 +141,17 @@ fun RegisterScreen(
 
             StyledTextField(
                 value = email,
-                onValueChange = { email = it },
-                placeholder = "example@mail.com",
+                onValueChange = {
+                    email = it
+                    // Проверка email при изменении
+                    if (it.isNotBlank() && !isValidEmail(it)) {
+                        errorMessage = "Email должен соответствовать формату: имя@домен.ру\n" +
+                                "Имя и домен: только маленькие буквы и цифры\n" +
+                                "Домен верхнего уровня: минимум 3 буквы"
+                        showErrorDialog = true
+                    }
+                },
+                placeholder = "xyz@gmail.com",
                 keyboardType = KeyboardType.Email
             )
 
@@ -136,12 +165,19 @@ fun RegisterScreen(
                 modifier = Modifier.padding(bottom = 6.dp)
             )
 
+            // Поле пароля с возможностью отображения/скрытия
             StyledTextField(
                 value = password,
                 onValueChange = { password = it },
                 placeholder = "********",
                 trailingIcon = {
                     IconButton(onClick = { showPassword = !showPassword }) {
+                        Icon(
+                            // Правильное отображение иконки в зависимости от состояния
+                            if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = if (showPassword) "Скрыть пароль" else "Показать пароль",
+                            tint = Color(0xFF48B2E7) // Изменен цвет для лучшей видимости
+                        )
                     }
                 },
                 keyboardType = KeyboardType.Password,
@@ -150,7 +186,7 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Чекбокс
+            // Чекбокс с условиями
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ShieldCheckbox(
                     checked = isTermsAccepted,
@@ -166,11 +202,22 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Кнопка регистрации (только интерфейс, без функционала)
+            // Кнопка регистрации (активна только при согласии с условиями)
             Button(
                 onClick = {
-                    // Функционал регистрации не реализован
-                    println("Регистрация: $name, $email, $password")
+                    // Проверка email перед регистрацией
+                    if (!isValidEmail(email)) {
+                        errorMessage = "Email должен соответствовать формату: имя@домен.ру\n" +
+                                "Имя и домен: только маленькие буквы и цифры\n" +
+                                "Домен верхнего уровня: минимум 3 буквы"
+                        showErrorDialog = true
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "Регистрация успешна! (Демо-режим)",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -182,7 +229,7 @@ fun RegisterScreen(
                     disabledContainerColor = Color(0xFF2B6B8B),
                     disabledContentColor = Color.White
                 ),
-                enabled = isFormValid
+                enabled = isFormValid  // Кнопка активна только при валидной форме и согласии
             ) {
                 Text("Зарегистрироваться", fontSize = 16.sp, fontWeight = FontWeight.Medium)
             }
@@ -206,6 +253,62 @@ fun RegisterScreen(
                     color = Color(0xFF333333),
                     modifier = Modifier.clickable { /* Навигация не реализована */ }
                 )
+            }
+        }
+    }
+
+    // Диалоговое окно для отображения ошибок
+    if (showErrorDialog) {
+        Dialog(onDismissRequest = { showErrorDialog = false }) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.shield),
+                        contentDescription = null,
+                        tint = Color(0xFFFF6B6B),
+                        modifier = Modifier.size(48.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Ошибка валидации",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF333333)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = errorMessage,
+                        fontSize = 14.sp,
+                        color = Color(0xFF666666),
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Button(
+                        onClick = { showErrorDialog = false },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF48B2E7)
+                        )
+                    ) {
+                        Text("Понятно", color = Color.White)
+                    }
+                }
             }
         }
     }
