@@ -7,4 +7,23 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="splash_background">#48B2E7</color>
+    <color name="colorPrimaryBlue">#48B2E7</color>
+    <color name="colorBackgroundLight">#F5F7FA</color>
+    <color name="colorCardBackground">#FFFFFF</color>
+
+    <!-- Текст -->
+    <color name="colorTextMain">#333333</color>
+    <color name="colorTextSecondary">#9E9E9E</color>
+    <color name="colorTextHint">#B0B0B0</color>
+
+    <!-- Категории / чипы -->
+    <color name="colorChipBackground">#E8EDF3</color>
+    <color name="colorChipText">#828B99</color>
+
+    <!-- Прочее -->
+    <color name="colorDividerLight">#E0E0E0</color>
+    <color name="colorBottomBarBackground">#FFFFFF</color>
+
+
 </resources>
