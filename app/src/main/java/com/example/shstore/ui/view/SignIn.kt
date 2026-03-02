@@ -25,67 +25,54 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
 import com.example.shstore.R
-import com.example.shstore.ui.theme.ShStoreTheme
-import com.example.shstore.ui.viewModel.SignUpViewModel
-import com.example.shstore.data.model.SignUpRequest
 
 @Composable
-fun RegisterScreen(
-    modifier: Modifier = Modifier,
-    navController: NavHostController,
-    viewModel: SignUpViewModel = viewModel()
-) {
-    var name by remember { mutableStateOf("") }
+fun LoginScreen(navController: NavHostController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
-    var isTermsAccepted by remember { mutableStateOf(false) }
 
+    // Состояние для диалога ошибок
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorDialogMessage by remember { mutableStateOf("") }
 
     val scrollState = rememberScrollState()
     val context = LocalContext.current
 
+    // Функция валидации email по заданному паттерну (пункт 12)
     fun isValidEmail(email: String): Boolean {
         val emailRegex = "^[a-z0-9]+@[a-z0-9]+\\.[a-z]{3,}$".toRegex()
-        return emailRegex.matches(email)
+        return emailRegex.matches(email.lowercase())
     }
 
-    val isFormValid = name.isNotBlank() &&
-            isValidEmail(email) &&
-            password.length >= 6 &&
-            isTermsAccepted
-
-    // Реакция на успешную регистрацию
-    LaunchedEffect(viewModel.isRegistered.value) {
-        if (viewModel.isRegistered.value) {
-            navController.navigate("login") {
-                popUpTo("register") { inclusive = true }
+    // Обработка нажатия кнопки "Войти"
+    fun onLoginClick() {
+        when {
+            email.isBlank() || password.isBlank() -> {
+                errorDialogMessage = "Пожалуйста, заполните все поля"
+                showErrorDialog = true
             }
-            viewModel.resetRegistrationState()
-        }
-    }
-
-    // Реакция на ошибки
-    LaunchedEffect(viewModel.errorMessage.value) {
-        viewModel.errorMessage.value?.let { msg ->
-            errorDialogMessage = msg
-            showErrorDialog = true
-            viewModel.clearError()
+            !isValidEmail(email) -> {
+                errorDialogMessage = "Email должен соответствовать формату:\n" +
+                        "только маленькие буквы и цифры до @,\n" +
+                        "после @ — только маленькие буквы и цифры,\n" +
+                        "домен верхнего уровня — минимум 3 буквы"
+                showErrorDialog = true
+            }
+            else -> {
+                // TODO: здесь будет вызов ViewModel для входа
+                android.widget.Toast.makeText(context, "Вход выполнен (демо)", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
     Surface(
-        modifier = modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         color = Color.White
     ) {
         Column(
@@ -115,43 +102,27 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(30.dp))
 
             Text(
-                "Регистрация",
+                text = "Привет!",
                 fontSize = 30.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color(0xFF333333),
-                textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
+
             Spacer(modifier = Modifier.height(4.dp))
+
             Text(
-                "Заполните Свои Данные",
+                text = "Войдите в свой аккаунт",
                 fontSize = 14.sp,
                 color = Color(0xFFB0B0B0),
-                textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            // Имя
-            Text(
-                "Ваше имя",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color(0xFF333333),
-                modifier = Modifier.padding(bottom = 6.dp)
-            )
-            StyledTextField(
-                value = name,
-                onValueChange = { name = it },
-                placeholder = "Иван Иванов"
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             // Email
             Text(
-                "Email",
+                text = "Email",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color(0xFF333333),
@@ -159,18 +130,16 @@ fun RegisterScreen(
             )
             StyledTextField(
                 value = email,
-                onValueChange = { newValue ->
-                    email = newValue.lowercase()
-                },
+                onValueChange = { email = it.lowercase() }, // приводим к нижнему регистру
                 placeholder = "xyz@gmail.com",
                 keyboardType = KeyboardType.Email
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Пароль
+            // Пароль (с возможностью отображения – пункт 14)
             Text(
-                "Пароль",
+                text = "Пароль",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color(0xFF333333),
@@ -193,66 +162,31 @@ fun RegisterScreen(
                 visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation()
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Чекбокс согласия
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                ShieldCheckbox(
-                    checked = isTermsAccepted,
-                    onCheckedChange = { isTermsAccepted = it }
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    "Даю согласие на обработку персональных данных",
-                    fontSize = 13.sp,
-                    color = Color(0xFF4A4A4A)
-                )
-            }
+            Text(
+                text = "Восстановить",
+                fontSize = 12.sp,
+                color = Color(0xFF9E9E9E),
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .clickable { /* TODO: навигация на восстановление пароля */ }
+            )
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Кнопка регистрации
+            // Кнопка входа
             Button(
-                onClick = {
-                    if (!isValidEmail(email)) {
-                        errorDialogMessage = "Email должен соответствовать формату:\n" +
-                                "только маленькие буквы и цифры до @,\n" +
-                                "после @ — только маленькие буквы и цифры,\n" +
-                                "домен верхнего уровня — минимум 3 буквы"
-                        showErrorDialog = true
-                    } else {
-                        viewModel.signUp(
-                            SignUpRequest(
-                                email = email.trim(),
-                                password = password.trim(),
-                                name = name.trim()
-                            )
-                        )
-                    }
-                },
+                onClick = { onLoginClick() },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(54.dp),
+                    .height(52.dp),
                 shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF48B2E7),
-                    contentColor = Color.White,
-                    disabledContainerColor = Color(0xFF2B6B8B),
-                    disabledContentColor = Color.White
-                ),
-                enabled = isFormValid && !viewModel.isLoading.value
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF48B2E7))
             ) {
-                if (viewModel.isLoading.value) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                } else {
-                    Text("Зарегистрироваться", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                }
+                Text("Войти", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color.White)
             }
 
-            // Ссылка на вход
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -260,23 +194,19 @@ fun RegisterScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                Text("Вы впервые? ", fontSize = 13.sp, color = Color(0xFF9E9E9E))
                 Text(
-                    "Есть аккаунт? ",
-                    fontSize = 13.sp,
-                    color = Color(0xFF9E9E9E)
-                )
-                Text(
-                    "Войти",
+                    " Создать",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color(0xFF333333),
-                    modifier = Modifier.clickable { navController.navigate("login") }
+                    modifier = Modifier.clickable { navController.navigate("register") }
                 )
             }
         }
     }
 
-    // Диалог ошибок
+    // Диалог ошибок (пункты 12 и 13)
     if (showErrorDialog) {
         Dialog(onDismissRequest = { showErrorDialog = false }) {
             Card(
@@ -351,33 +281,4 @@ private fun StyledTextField(
             unfocusedBorderColor = Color.Transparent
         )
     )
-}
-
-@Composable
-fun ShieldCheckbox(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    val backgroundColor = if (checked) Color(0xFF48B2E7) else Color(0xFFF2F2F2)
-    Box(
-        modifier = Modifier
-            .size(20.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .background(backgroundColor)
-            .clickable { onCheckedChange(!checked) },
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            painter = painterResource(id = R.drawable.shield),
-            contentDescription = null,
-            tint = Color.Black,
-            modifier = Modifier.size(14.dp)
-        )
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun RegisterScreenPreview() {
-    ShStoreTheme {
-        val navController = rememberNavController()
-        RegisterScreen(navController = navController)
-    }
 }
