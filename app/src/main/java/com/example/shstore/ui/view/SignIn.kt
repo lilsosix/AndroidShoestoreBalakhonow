@@ -170,7 +170,9 @@ fun LoginScreen(navController: NavHostController) {
                 color = Color(0xFF9E9E9E),
                 modifier = Modifier
                     .align(Alignment.End)
-                    .clickable { /* TODO: навигация на восстановление пароля */ }
+                    .clickable {
+                        navController.navigate("forgot_password")
+                    }
             )
 
             Spacer(modifier = Modifier.height(28.dp))

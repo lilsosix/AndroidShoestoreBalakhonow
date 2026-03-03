@@ -13,4 +13,8 @@ interface UserManagementService {
     @Headers("apikey: $API_KEY", "Content-Type: application/json")
     @POST("auth/v1/signup")
     suspend fun signUp(@Body signUpRequest: SignUpRequest): Response<SignUpResponse>
+
+    @Headers("apikey: ${com.example.shstore.data.service.API_KEY}", "Content-Type: application/json")
+    @POST("auth/v1/recover")
+    suspend fun recoverPassword(@Body body: Map<String, String>): Response<Any>
 }
