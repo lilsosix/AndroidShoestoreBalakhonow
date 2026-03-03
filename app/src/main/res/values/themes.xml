@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Минимальная тема без лишних цветов -->
+    <style name="Theme.ShStore" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Прозрачный статус бар (чтобы контент был под ним) -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+
+        <!-- Белый фон по умолчанию -->
+        <item name="android:windowBackground">@color/white</item>
+    </style>
+
+</resources>
