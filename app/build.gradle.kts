@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.examen"
+    namespace = "com.example.shstore"
     compileSdk = 36
 
     defaultConfig {
