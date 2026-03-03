@@ -13,6 +13,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.shstore.ui.theme.ShStoreTheme
+import com.example.shstore.ui.view.ForgotPasswordScreen
 import com.example.shstore.ui.view.LoginScreen
 import com.example.shstore.ui.view.RegisterScreen
 
@@ -34,6 +35,9 @@ class MainActivity : ComponentActivity() {
                     ) {
                         composable("register") { RegisterScreen(navController = navController) }
                         composable("login") { LoginScreen(navController = navController) }
+                        composable("forgot_password") {
+                            ForgotPasswordScreen(navController)
+                        }
                     }
                 }
             }
