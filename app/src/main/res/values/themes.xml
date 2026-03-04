@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Минимальная тема без лишних цветов -->
-    <style name="Theme.ShStore" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Прозрачный статус бар (чтобы контент был под ним) -->
+    <!-- Обычная тема приложения (без ActionBar) -->
+    <style name="Theme.shstore.App" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
+    </style>
 
-        <!-- Белый фон по умолчанию -->
-        <item name="android:windowBackground">@color/white</item>
+    <!-- Тема для системного SplashScreen -->
+    <style name="Theme.shstore" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.shstore.App</item>
     </style>
 
 </resources>
