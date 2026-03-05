@@ -9,7 +9,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.examen"
+        applicationId = "com.example.shstore"
         minSdk = 33
         targetSdk = 36
         versionCode = 1

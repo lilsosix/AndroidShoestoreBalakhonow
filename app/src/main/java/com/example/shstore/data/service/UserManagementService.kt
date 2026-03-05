@@ -61,46 +61,53 @@ interface UserManagementService {
 
     // ---------- PROFILES ----------
 
-    @Headers("apikey: ${com.example.shstore.data.service.API_KEY}")
+    @Headers("apikey: ${API_KEY}")
     @GET("rest/v1/profiles")
     suspend fun getProfile(
         @Header("Authorization") authHeader: String,
         @Query("user_id") userIdFilter: String, // "eq.<uuid>"
         @Query("select") select: String = "*"
-    ): List<com.example.shstore.data.service.ProfileDto>
+    ): List<ProfileDto>
 
-    @Headers("apikey: ${com.example.shstore.data.service.API_KEY}", "Content-Type: application/json")
+    @Headers("apikey: ${API_KEY}", "Content-Type: application/json")
     @PUT("rest/v1/profiles")
     suspend fun updateProfile(
         @Header("Authorization") authHeader: String,
         @Query("user_id") userIdFilter: String,
         @Body body: Map<String, Any?>
     ): Response<Unit>
+    @Headers("apikey: $API_KEY", "Content-Type: application/json", "Prefer: return=representation")
+    @POST("rest/v1/profiles")
+    suspend fun createProfile(
+        @Header("Authorization") authHeader: String,
+        @Body body: ProfileCreateRequest
+    ): Response<ProfileDto>
+
 
     // ---------- PRODUCTS ----------
 
-    @Headers("apikey: ${com.example.shstore.data.service.API_KEY}")
+    @Headers("apikey: ${API_KEY}")
     @GET("rest/v1/products")
     suspend fun getProducts(
         @Header("Authorization") authHeader: String,
         @Query("select") select: String = "*"
-    ): List<com.example.shstore.data.service.ProductDto>
-    @Headers("apikey: ${com.example.shstore.data.service.API_KEY}")
+    ): List<ProductDto>
+    @Headers("apikey: ${API_KEY}")
     @GET("rest/v1/favourite")
     suspend fun getFavourites(
         @Header("Authorization") authHeader: String,
         @Query("user_id") userIdFilter: String, // "eq.<uuid>"
         @Query("select") select: String = "id,product_id,user_id"
-    ): List<com.example.shstore.data.service.FavouriteDto>
+    ): List<FavouriteDto>
 
-    @Headers("apikey: ${com.example.shstore.data.service.API_KEY}", "Content-Type: application/json")
+    @Headers("apikey: ${API_KEY}", "Content-Type: application/json")
     @POST("rest/v1/favourite")
     suspend fun addFavourite(
         @Header("Authorization") authHeader: String,
         @Body body: FavouriteRequest
     ): Response<Unit>
 
-    @Headers("apikey: ${com.example.shstore.data.service.API_KEY}")
+    @Headers("apikey: ${API_KEY}")
     @DELETE("rest/v1/favourite")
     suspend fun deleteFavourite(
         @Header("Authorization") authHeader: String,

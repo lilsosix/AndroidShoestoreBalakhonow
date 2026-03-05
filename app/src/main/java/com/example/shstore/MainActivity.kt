@@ -35,6 +35,9 @@ class MainActivity : ComponentActivity() {
                         startDestination = "onboard1",
                         modifier = Modifier.padding(innerPadding)
                     ) {
+                        composable("onboard1") { Onboard1Screen(navController) }
+                        composable("onboard2") { Onboard2Screen(navController) }
+                        composable("onboard3") { Onboard3Screen(navController) }
 
 
                         composable("login") { LoginScreen(navController = navController) }

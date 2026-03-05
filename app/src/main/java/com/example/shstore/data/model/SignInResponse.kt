@@ -2,9 +2,13 @@ package com.example.shstore.data.model
 
 data class SignInResponse(
     val access_token: String,
-    val user: UserDto
+    val token_type: String,
+    val expires_in: Int,
+    val refresh_token: String,
+    val user: User
 )
 
-data class UserDto(
-    val id: String
+data class User(
+    val id: String,
+    val email: String
 )
