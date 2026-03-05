@@ -1,4 +1,4 @@
-package com.example.upsidorkin.ui.view
+package com.example.shstore.ui.view
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.Image

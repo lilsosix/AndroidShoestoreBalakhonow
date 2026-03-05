@@ -37,7 +37,7 @@ fun VerifyOTPScreen(
 ) {
     var otpValue by remember { mutableStateOf(TextFieldValue("")) }
     val context = LocalContext.current
-    val otpLength = 6
+    val otpLength = 8 // Изменено с 6 на 8
 
     LaunchedEffect(otpValue.text) {
         if (otpValue.text.length == otpLength) {
@@ -64,7 +64,11 @@ fun VerifyOTPScreen(
                     .clickable { navController.popBackStack() },
                 contentAlignment = Alignment.Center
             ) {
-
+                Icon(
+                    painter = painterResource(id = com.example.shstore.R.drawable.arrow),
+                    contentDescription = "Назад",
+                    tint = Color(0xFF555555)
+                )
             }
 
             Spacer(modifier = Modifier.height(40.dp))
@@ -109,12 +113,9 @@ fun VerifyOTPScreen(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
-
-
         }
     }
 }
-
 
 @Composable
 fun OtpInputField(
@@ -131,7 +132,7 @@ fun OtpInputField(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             decorationBox = {
                 Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp), // Добавил отступы между ячейками
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     repeat(length) { index ->
@@ -158,12 +159,12 @@ fun OtpCell(
 
     Box(
         modifier = Modifier
-            .width(48.dp)
+            .width(38.dp) // Уменьшил ширину с 48dp до 40dp, чтобы 8 ячеек поместились на экране
             .height(60.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(backgroundColor)
             .border(
-                width = if (isFocused) 1.dp else 0.dp,
+                width = if (isFocused) 2.dp else 0.dp, // Увеличил толщину границы для лучшей видимости
                 color = borderColor,
                 shape = RoundedCornerShape(12.dp)
             ),

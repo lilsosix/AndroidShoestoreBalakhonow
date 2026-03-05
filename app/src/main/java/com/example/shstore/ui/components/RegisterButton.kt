@@ -21,6 +21,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.shstore.ui.viewModel.SignUpViewModel
 
+
 @Composable
 fun RegisterButton(
     name: String,
@@ -44,7 +45,7 @@ fun RegisterButton(
                 prefs.edit().putString("userEmail", email.trim()).apply()
 
                 // Вызов регистрации (сервер отправляет код на почту)
-                viewModel.signUp(email.trim(), password.trim(), navController)
+                viewModel.signUp(email.trim(), password.trim(), name = name.trim(), navController)
 
                 // Переход на экран OTP-проверки
                 navController.navigate("otp")
