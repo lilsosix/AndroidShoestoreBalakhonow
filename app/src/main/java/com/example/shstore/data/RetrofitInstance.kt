@@ -12,7 +12,7 @@ object RetrofitInstance {
     const val SUPABASE_URL = "https://siyavxuhmpphhlroshwg.supabase.co"
 
 
-    private val proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress("10.207.106.77", 3128))
+    private val proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress("10.207.106.59", 3128))
 
     private val client = OkHttpClient.Builder()
         .proxy(proxy)

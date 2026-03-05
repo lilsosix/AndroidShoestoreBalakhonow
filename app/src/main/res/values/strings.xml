@@ -2,7 +2,7 @@
 <resources>
 
     <!-- Общее -->
-    <string name="app_name">UpSidorkin</string>
+    <string name="app_name">ShStore</string>
 
     <!-- Home -->
     <string name="home_title">Главная</string>
