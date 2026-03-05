@@ -16,8 +16,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.shstore.ui.theme.ShStoreTheme
 import com.example.shstore.data.UserSession
-import com.example.shstore.ui.theme.ShStoreTheme
 import com.example.shstore.ui.view.*
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,13 +32,12 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     NavHost(
                         navController = navController,
-                        startDestination = "onboard1",
+                        startDestination = "home",
                         modifier = Modifier.padding(innerPadding)
                     ) {
                         composable("onboard1") { Onboard1Screen(navController) }
                         composable("onboard2") { Onboard2Screen(navController) }
                         composable("onboard3") { Onboard3Screen(navController) }
-
 
                         composable("login") { LoginScreen(navController = navController) }
                         composable("register") { RegisterScreen(navController = navController) }
@@ -52,8 +51,7 @@ class MainActivity : ComponentActivity() {
                                 navArgument("category") { type = NavType.StringType }
                             )
                         ) { backStackEntry ->
-                            val category =
-                                backStackEntry.arguments?.getString("category") ?: "Outdoor"
+                            val category = backStackEntry.arguments?.getString("category") ?: "Outdoor"
                             CatalogScreen(
                                 navController = navController,
                                 initialCategoryTitle = category
@@ -106,19 +104,23 @@ class MainActivity : ComponentActivity() {
                             ForgotPasswordScreen(navController)
                         }
 
+                        // Маршрут для OTP с опциональным параметром name
                         composable(
-                            route = "verifyOTP/{email}/{type}",
+                            route = "verifyOTP/{email}/{type}?name={name}",
                             arguments = listOf(
                                 navArgument("email") { type = NavType.StringType },
-                                navArgument("type") { type = NavType.StringType }
+                                navArgument("type") { type = NavType.StringType },
+                                navArgument("name") { type = NavType.StringType; nullable = true; defaultValue = "" }
                             )
                         ) { backStackEntry ->
                             val email = backStackEntry.arguments?.getString("email") ?: ""
                             val type = backStackEntry.arguments?.getString("type") ?: "signup"
+                            val name = backStackEntry.arguments?.getString("name") ?: ""
                             VerifyOTPScreen(
                                 navController = navController,
                                 email = email,
-                                otpType = type
+                                otpType = type,
+                                name = name
                             )
                         }
 

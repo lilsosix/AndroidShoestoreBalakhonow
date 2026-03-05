@@ -29,6 +29,8 @@ data class ProductDto(
     val description: String,
     val is_best_seller: Boolean?
 )
+
+
 interface UserManagementService {
 
     // ---------- РЕГИСТРАЦИЯ ----------
@@ -58,6 +60,7 @@ interface UserManagementService {
         @Header("Authorization") authHeader: String,
         @Body request: ChangePasswordRequest
     ): Response<Any>
+
 
     // ---------- PROFILES ----------
 

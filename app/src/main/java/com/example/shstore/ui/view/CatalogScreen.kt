@@ -19,10 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavHostController
 import com.example.shstore.R
 import com.example.shstore.data.RetrofitInstance
@@ -30,6 +33,7 @@ import com.example.shstore.data.UserSession
 import com.example.shstore.data.model.FavouriteRequest
 import com.example.shstore.data.service.ProductDto
 import kotlinx.coroutines.launch
+import java.io.IOException
 
 data class CatalogCategory(
     val id: String,
@@ -44,7 +48,7 @@ data class CatalogProduct(
     val isBestSeller: Boolean,
     val imageRes: Int,
     val isFavorite: Boolean = false,
-    val description: String = ""        // описание из базы
+    val description: String = ""
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,91 +68,92 @@ fun CatalogScreen(
     val sessionUserId = UserSession.userId
     val token = UserSession.accessToken
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     var allProducts by remember { mutableStateOf<List<CatalogProduct>>(emptyList()) }
     var selectedCategory by remember { mutableStateOf(initialCategoryTitle) }
     var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    Log.d("CATALOG", "sessionUserId=$sessionUserId token=${token?.take(10)}")
-
-    LaunchedEffect(sessionUserId, token) {
+    // Загрузка данных с сервера
+    fun loadData() {
         if (token == null || sessionUserId == null) {
-            Log.e("CATALOG", "No token or userId, skip loading")
-            return@LaunchedEffect
+            errorMessage = "Пользователь не авторизован"
+            return
         }
         isLoading = true
-        try {
-            val service = RetrofitInstance.userManagementService
-
-            val products: List<ProductDto> = service.getProducts(
-                authHeader = "Bearer $token"
-            )
-            val favs = service.getFavourites(
-                authHeader = "Bearer $token",
-                userIdFilter = "eq.$sessionUserId"
-            )
-            val favSet = favs.mapNotNull { it.product_id }.toSet()
-
-            allProducts = products.map { p ->
-                CatalogProduct(
-                    id = p.id,
-                    title = p.title,
-                    price = p.cost,
-                    categoryId = p.category_id,
-                    isBestSeller = p.is_best_seller == true,
-                    imageRes = R.drawable.img_shoe_blue,
-                    isFavorite = favSet.contains(p.id),
-                    description = p.description           // берём описание из базы
+        errorMessage = null
+        scope.launch {
+            try {
+                val service = RetrofitInstance.userManagementService
+                val products: List<ProductDto> = service.getProducts(
+                    authHeader = "Bearer $token"
                 )
+                val favs = service.getFavourites(
+                    authHeader = "Bearer $token",
+                    userIdFilter = "eq.$sessionUserId"
+                )
+                val favSet = favs.mapNotNull { it.product_id }.toSet()
+
+                allProducts = products.map { p ->
+                    CatalogProduct(
+                        id = p.id,
+                        title = p.title,
+                        price = p.cost,
+                        categoryId = p.category_id,
+                        isBestSeller = p.is_best_seller == true,
+                        imageRes = R.drawable.img_shoe_blue, // заглушка
+                        isFavorite = favSet.contains(p.id),
+                        description = p.description
+                    )
+                }
+            } catch (e: IOException) {
+                errorMessage = "Ошибка сети: ${e.localizedMessage}"
+            } catch (e: Exception) {
+                errorMessage = "Ошибка загрузки: ${e.localizedMessage}"
+            } finally {
+                isLoading = false
             }
-        } catch (e: Exception) {
-            Log.e("CATALOG", "load error", e)
-        } finally {
-            isLoading = false
         }
     }
 
-    fun toggleFavourite(product: CatalogProduct, isFav: Boolean) {
+    LaunchedEffect(Unit) {
+        loadData()
+    }
+
+    fun toggleFavourite(product: CatalogProduct, newFavState: Boolean) {
         if (sessionUserId == null || token == null) {
-            Log.e("FAV", "No token/userId")
+            errorMessage = "Необходима авторизация"
             return
+        }
+        // Оптимистичное обновление UI
+        allProducts = allProducts.map {
+            if (it.id == product.id) it.copy(isFavorite = newFavState) else it
         }
         scope.launch {
             try {
                 val service = RetrofitInstance.userManagementService
-
-                if (isFav) {
-                    val resp = service.addFavourite(
+                if (newFavState) {
+                    service.addFavourite(
                         authHeader = "Bearer $token",
                         body = FavouriteRequest(
                             user_id = sessionUserId,
                             product_id = product.id
                         )
                     )
-                    Log.d("FAV", "addFavourite code=${resp.code()} err=${resp.errorBody()?.string()}")
-                    if (!resp.isSuccessful) {
-                        allProducts = allProducts.map {
-                            if (it.id == product.id) it.copy(isFavorite = false) else it
-                        }
-                        return@launch
-                    }
                 } else {
-                    val resp = service.deleteFavourite(
+                    service.deleteFavourite(
                         authHeader = "Bearer $token",
                         userIdFilter = "eq.$sessionUserId",
                         productIdFilter = "eq.${product.id}"
                     )
-                    Log.d("FAV", "deleteFavourite code=${resp.code()} err=${resp.errorBody()?.string()}")
-                }
-
-                allProducts = allProducts.map {
-                    if (it.id == product.id) it.copy(isFavorite = isFav) else it
                 }
             } catch (e: Exception) {
-                Log.e("FAV", "toggle error", e)
+                // Откат при ошибке
                 allProducts = allProducts.map {
-                    if (it.id == product.id) it.copy(isFavorite = !isFav) else it
+                    if (it.id == product.id) it.copy(isFavorite = !newFavState) else it
                 }
+                errorMessage = "Не удалось обновить избранное"
             }
         }
     }
@@ -233,12 +238,27 @@ fun CatalogScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        if (isLoading) {
+        if (isLoading && allProducts.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(color = Color(0xFF48B2E7))
+            }
+        } else if (errorMessage != null && allProducts.isEmpty()) {
+            // Показываем ошибку и кнопку повтора, если нет данных
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(text = errorMessage ?: "Неизвестная ошибка", textAlign = TextAlign.Center)
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = { loadData() }) {
+                    Text("Повторить")
+                }
             }
         } else {
             LazyVerticalGrid(
@@ -258,8 +278,59 @@ fun CatalogScreen(
                     ) {
                         CatalogProductCard(
                             product = product,
-                            onToggleFavorite = ::toggleFavourite
+                            onToggleFavorite = { p, newState ->
+                                toggleFavourite(p, newState)
+                            }
                         )
+                    }
+                }
+            }
+        }
+    }
+
+    // Диалог ошибок (пункт 12)
+    if (errorMessage != null && !isLoading && allProducts.isNotEmpty()) {
+        // Если ошибка появилась после загрузки данных, показываем диалог
+        Dialog(onDismissRequest = { errorMessage = null }) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.shield),
+                        contentDescription = null,
+                        tint = Color(0xFFFF6B6B),
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Ошибка",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF333333)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = errorMessage ?: "",
+                        fontSize = 14.sp,
+                        color = Color(0xFF666666),
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Button(
+                        onClick = { errorMessage = null },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF48B2E7))
+                    ) {
+                        Text("Понятно", color = Color.White)
                     }
                 }
             }
@@ -272,7 +343,8 @@ private fun CatalogProductCard(
     product: CatalogProduct,
     onToggleFavorite: (CatalogProduct, Boolean) -> Unit
 ) {
-    var isFavorite by remember(product.id) { mutableStateOf(product.isFavorite) }
+    // Используем remember с ключом, чтобы обновляться при изменении isFavorite извне
+    val isFavorite by rememberUpdatedState(newValue = product.isFavorite)
 
     Box(
         modifier = Modifier
@@ -294,9 +366,7 @@ private fun CatalogProductCard(
                     modifier = Modifier
                         .size(20.dp)
                         .clickable {
-                            val newValue = !isFavorite
-                            isFavorite = newValue
-                            onToggleFavorite(product, newValue)
+                            onToggleFavorite(product, !isFavorite)
                         }
                 )
             }

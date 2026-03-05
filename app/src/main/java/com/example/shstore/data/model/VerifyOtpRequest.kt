@@ -1,7 +1,7 @@
 package com.example.shstore.data.model
 
 data class VerifyOtpRequest(
-    val type: String = "signup",
     val email: String,
-    val token: String
+    val token: String,
+    val type: String
 )
