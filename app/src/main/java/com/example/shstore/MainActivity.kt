@@ -15,6 +15,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.shstore.ui.theme.ShStoreTheme
+import com.example.shstore.data.UserSession
+import com.example.shstore.ui.theme.ShStoreTheme
 import com.example.shstore.ui.view.*
 
 class MainActivity : ComponentActivity() {
@@ -30,15 +32,77 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     NavHost(
                         navController = navController,
-                        startDestination = "register",
+                        startDestination = "onboard1",
                         modifier = Modifier.padding(innerPadding)
                     ) {
+
+
                         composable("login") { LoginScreen(navController = navController) }
                         composable("register") { RegisterScreen(navController = navController) }
+
+                        composable("home") { HomeScreen(navController = navController) }
+
+                        // каталог по категории
+                        composable(
+                            route = "catalog/{category}",
+                            arguments = listOf(
+                                navArgument("category") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            val category =
+                                backStackEntry.arguments?.getString("category") ?: "Outdoor"
+                            CatalogScreen(
+                                navController = navController,
+                                initialCategoryTitle = category
+                            )
+                        }
+
+                        // если где‑то нужен просто каталог без параметра
+                        composable("catalog") {
+                            CatalogScreen(
+                                navController = navController,
+                                initialCategoryTitle = "Outdoor"
+                            )
+                        }
+
+                        // экран избранного
+                        composable("favorite") {
+                            FavoriteScreen(navController = navController)
+                        }
+
+                        // экран деталей товара
+                        composable(
+                            route = "details/{productId}",
+                            arguments = listOf(
+                                navArgument("productId") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            val productId = backStackEntry.arguments?.getString("productId") ?: ""
+                            DetailsScreen(
+                                navController = navController,
+                                productId = productId
+                            )
+                        }
+
+                        composable("profile") {
+                            val userId = UserSession.userId
+                            val accessToken = UserSession.accessToken
+
+                            if (userId != null && accessToken != null) {
+                                ProfileScreen(
+                                    navController = navController,
+                                    userId = userId,
+                                    accessToken = accessToken
+                                )
+                            } else {
+                                LoginScreen(navController = navController)
+                            }
+                        }
 
                         composable("forgot_password") {
                             ForgotPasswordScreen(navController)
                         }
+
                         composable(
                             route = "verifyOTP/{email}/{type}",
                             arguments = listOf(

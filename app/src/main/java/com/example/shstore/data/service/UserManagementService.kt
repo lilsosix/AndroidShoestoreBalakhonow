@@ -85,4 +85,26 @@ interface UserManagementService {
         @Header("Authorization") authHeader: String,
         @Query("select") select: String = "*"
     ): List<com.example.shstore.data.service.ProductDto>
+    @Headers("apikey: ${com.example.shstore.data.service.API_KEY}")
+    @GET("rest/v1/favourite")
+    suspend fun getFavourites(
+        @Header("Authorization") authHeader: String,
+        @Query("user_id") userIdFilter: String, // "eq.<uuid>"
+        @Query("select") select: String = "id,product_id,user_id"
+    ): List<com.example.shstore.data.service.FavouriteDto>
+
+    @Headers("apikey: ${com.example.shstore.data.service.API_KEY}", "Content-Type: application/json")
+    @POST("rest/v1/favourite")
+    suspend fun addFavourite(
+        @Header("Authorization") authHeader: String,
+        @Body body: FavouriteRequest
+    ): Response<Unit>
+
+    @Headers("apikey: ${com.example.shstore.data.service.API_KEY}")
+    @DELETE("rest/v1/favourite")
+    suspend fun deleteFavourite(
+        @Header("Authorization") authHeader: String,
+        @Query("user_id") userIdFilter: String, // "eq.<uuid>"
+        @Query("product_id") productIdFilter: String // "eq.<uuid>"
+    ): Response<Unit>
 }
