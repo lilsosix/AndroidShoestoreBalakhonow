@@ -19,31 +19,50 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.shstore.R
-
-data class Product(
-    val id: Int,
-    val name: String,
-    val price: String,
-    val imageRes: Int
-)
+import com.example.shstore.data.RetrofitInstance
+import com.example.shstore.data.UserSession
+import com.example.shstore.data.service.ProductDto
+import java.io.IOException
 
 @Composable
 fun HomeScreen(navController: NavHostController) {
     val scrollState = rememberScrollState()
+    val token = UserSession.accessToken
+    val userId = UserSession.userId
 
-    val categories = listOf("Все", "Outdoor", "Tennis")
+    val categories = listOf("Все", "Outdoor", "Tennis", "Men", "Women")
     var selectedCategory by remember { mutableStateOf("Все") }
 
-    val products = listOf(
-        Product(1, "Nike Air Max", "₽752.00", R.drawable.img_shoe_blue),
-        Product(2, "Nike Air Max", "₽752.00", R.drawable.img_shoe_blue)
-    )
+    var allProducts by remember { mutableStateOf<List<ProductDto>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // Загружаем товары с сервера (задание 7 — чтобы были реальные id для перехода в Details)
+    LaunchedEffect(Unit) {
+        if (token == null) return@LaunchedEffect
+        isLoading = true
+        try {
+            allProducts = RetrofitInstance.userManagementService.getProducts()
+        } catch (e: IOException) {
+            errorMessage = "Нет соединения с интернетом"
+        } catch (e: Exception) {
+            errorMessage = "Ошибка загрузки товаров"
+        } finally {
+            isLoading = false
+        }
+    }
+
+    val bestSellers = allProducts.filter { it.is_best_seller == true }
+    val displayProducts = if (selectedCategory == "Все") allProducts else allProducts.filter {
+        // фильтрация не по category_id, т.к. на главной показываем all/best sellers
+        it.is_best_seller == true
+    }
 
     Scaffold(
         bottomBar = { BottomBar(navController = navController, currentRoute = "home") },
@@ -69,10 +88,8 @@ fun HomeScreen(navController: NavHostController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                SearchBox(
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                HomeSearchBox(
                     hint = stringResource(id = R.string.search_hint),
                     modifier = Modifier.weight(1f)
                 )
@@ -104,18 +121,17 @@ fun HomeScreen(navController: NavHostController) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(categories) { category ->
                     val isSelected = category == selectedCategory
-                    CategoryChip(
+                    HomeCategoryChip(
                         title = category,
                         selected = isSelected,
                         onClick = {
                             selectedCategory = category
-                            // переход на каталог с выбранной категорией
-                            navController.navigate("catalog/$category")
+                            if (category != "Все") {
+                                navController.navigate("catalog/$category")
+                            }
                         }
                     )
                 }
@@ -137,17 +153,32 @@ fun HomeScreen(navController: NavHostController) {
                 Text(
                     text = stringResource(id = R.string.see_all),
                     fontSize = 14.sp,
-                    color = Color(0xFF48B2E7)
+                    color = Color(0xFF48B2E7),
+                    modifier = Modifier.clickable { navController.navigate("catalog") }
                 )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(products) { product ->
-                    ProductCard(product = product)
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Color(0xFF48B2E7))
+                }
+            } else {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(if (bestSellers.isEmpty()) allProducts.take(6) else bestSellers) { product ->
+                        // Задание 7: нажатие на карточку → переход на Details
+                        HomeProductCard(
+                            product = product,
+                            onClick = { navController.navigate("details/${product.id}") },
+                            onAddToCart = { navController.navigate("cart") }
+                        )
+                    }
                 }
             }
 
@@ -173,16 +204,19 @@ fun HomeScreen(navController: NavHostController) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            PromoBanner()
+            HomePromoBanner()
             Spacer(modifier = Modifier.height(80.dp))
         }
+    }
+
+    if (errorMessage != null) {
+        ErrorDialog(message = errorMessage!!, onDismiss = { errorMessage = null })
     }
 }
 
 @Composable
-private fun SearchBox(hint: String, modifier: Modifier = Modifier) {
+private fun HomeSearchBox(hint: String, modifier: Modifier = Modifier) {
     var value by remember { mutableStateOf(TextFieldValue("")) }
-
     OutlinedTextField(
         value = value,
         onValueChange = { value = it },
@@ -193,9 +227,7 @@ private fun SearchBox(hint: String, modifier: Modifier = Modifier) {
                 tint = Color(0xFFB0B0B0)
             )
         },
-        placeholder = {
-            Text(text = hint, color = Color(0xFFB0B0B0))
-        },
+        placeholder = { Text(text = hint, color = Color(0xFFB0B0B0)) },
         singleLine = true,
         modifier = modifier
             .height(48.dp)
@@ -210,16 +242,12 @@ private fun SearchBox(hint: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun CategoryChip(
-    title: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
+private fun HomeCategoryChip(title: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .height(34.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(if (selected) Color.White else Color(0xFFE8EDF3))
+            .background(if (selected) Color(0xFF48B2E7) else Color.White)
             .clickable { onClick() }
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
@@ -227,37 +255,43 @@ private fun CategoryChip(
         Text(
             text = title,
             fontSize = 14.sp,
-            color = if (selected) Color(0xFF333333) else Color(0xFF828B99)
+            color = if (selected) Color.White else Color(0xFF828B99)
         )
     }
 }
 
 @Composable
-private fun ProductCard(product: Product) {
+fun HomeProductCard(
+    product: ProductDto,
+    onClick: () -> Unit,
+    onAddToCart: () -> Unit = {}
+) {
     Box(
         modifier = Modifier
             .width(180.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(Color.White)
+            .clickable { onClick() }  // Задание 7: переход на Details
             .padding(12.dp)
     ) {
         Column {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.End
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_favorite_border),
                     contentDescription = "Favorite",
-                    tint = Color(0xFFB0B0B0)
+                    tint = Color(0xFFB0B0B0),
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Image(
-                painter = painterResource(id = product.imageRes),
-                contentDescription = product.name,
+                painter = painterResource(id = R.drawable.img_shoe_blue),
+                contentDescription = product.title,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(80.dp)
@@ -265,15 +299,17 @@ private fun ProductCard(product: Product) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = "BEST SELLER",
-                fontSize = 10.sp,
-                color = Color(0xFF48B2E7),
-                fontWeight = FontWeight.Medium
-            )
+            if (product.is_best_seller == true) {
+                Text(
+                    text = "BEST SELLER",
+                    fontSize = 10.sp,
+                    color = Color(0xFF48B2E7),
+                    fontWeight = FontWeight.Medium
+                )
+            }
 
             Text(
-                text = product.name,
+                text = product.title,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color(0xFF333333),
@@ -289,7 +325,7 @@ private fun ProductCard(product: Product) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = product.price,
+                    text = "₽${product.cost}",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF333333)
@@ -299,7 +335,7 @@ private fun ProductCard(product: Product) {
                         .size(32.dp)
                         .clip(RoundedCornerShape(10.dp))
                         .background(Color(0xFF48B2E7))
-                        .clickable { },
+                        .clickable { onAddToCart() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -314,7 +350,7 @@ private fun ProductCard(product: Product) {
 }
 
 @Composable
-private fun PromoBanner() {
+private fun HomePromoBanner() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -329,6 +365,8 @@ private fun PromoBanner() {
         )
     }
 }
+
+// ── BottomBar (общий для всех экранов) ───────────────────────────────────────
 
 @Composable
 fun BottomBar(navController: NavHostController, currentRoute: String) {
@@ -349,76 +387,75 @@ fun BottomBar(navController: NavHostController, currentRoute: String) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Дом
             Icon(
                 painter = painterResource(id = R.drawable.ic_home),
                 contentDescription = "Home",
                 tint = if (currentRoute == "home") activeColor else inactiveColor,
                 modifier = Modifier.clickable {
-                    if (currentRoute != "home") {
-                        navController.navigate("home") {
-                            popUpTo("home") { inclusive = false }
-                            launchSingleTop = true
-                        }
+                    if (currentRoute != "home") navController.navigate("home") {
+                        popUpTo("home") { inclusive = false }
+                        launchSingleTop = true
                     }
                 }
             )
-
 
             Icon(
                 painter = painterResource(id = R.drawable.ic_heart),
                 contentDescription = "Favorites",
                 tint = if (currentRoute == "favorite") activeColor else inactiveColor,
                 modifier = Modifier.clickable {
-                    if (currentRoute != "favorite") {
-                        navController.navigate("favorite") {
-                            popUpTo("home") { inclusive = false }
-                            launchSingleTop = true
-                        }
+                    if (currentRoute != "favorite") navController.navigate("favorite") {
+                        popUpTo("home") { inclusive = false }
+                        launchSingleTop = true
                     }
                 }
             )
 
-
+            // Центральная кнопка — корзина
             Box(
                 modifier = Modifier
                     .size(56.dp)
                     .clip(CircleShape)
-                    .background(activeColor),
+                    .background(activeColor)
+                    .clickable {
+                        if (currentRoute != "cart") navController.navigate("cart") {
+                            popUpTo("home") { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.bag),
-                    contentDescription = "Bag",
+                    contentDescription = "Cart",
                     tint = Color.White,
                     modifier = Modifier.size(24.dp)
                 )
             }
 
-
             Icon(
                 painter = painterResource(id = R.drawable.ic_truck),
                 contentDescription = "Orders",
-                tint = inactiveColor
+                tint = if (currentRoute == "orders") activeColor else inactiveColor,
+                modifier = Modifier.clickable {
+                    if (currentRoute != "orders") navController.navigate("orders") {
+                        popUpTo("home") { inclusive = false }
+                        launchSingleTop = true
+                    }
+                }
             )
 
-            // Профиль
             Icon(
                 painter = painterResource(id = R.drawable.ic_profile),
                 contentDescription = "Profile",
                 tint = if (currentRoute == "profile") activeColor else inactiveColor,
                 modifier = Modifier.clickable {
-                    if (currentRoute != "profile") {
-                        navController.navigate("profile") {
-                            popUpTo("home") { inclusive = false }
-                            launchSingleTop = true
-                        }
+                    if (currentRoute != "profile") navController.navigate("profile") {
+                        popUpTo("home") { inclusive = false }
+                        launchSingleTop = true
                     }
                 }
             )
         }
     }
 }
-
-
-

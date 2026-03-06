@@ -24,9 +24,11 @@ import androidx.navigation.NavHostController
 import com.example.shstore.R
 import com.example.shstore.data.RetrofitInstance
 import com.example.shstore.data.UserSession
+import com.example.shstore.data.model.CartRequest
 import com.example.shstore.data.model.FavouriteRequest
 import com.example.shstore.data.service.ProductDto
 import kotlinx.coroutines.launch
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,17 +43,15 @@ fun DetailsScreen(
     var allProducts by remember { mutableStateOf<List<CatalogProduct>>(emptyList()) }
     var current by remember { mutableStateOf<CatalogProduct?>(null) }
     var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(productId, token, userId) {
         if (token == null || userId == null) return@LaunchedEffect
         isLoading = true
         try {
             val service = RetrofitInstance.userManagementService
-            val products: List<ProductDto> = service.getProducts(
-                authHeader = "Bearer $token"
-            )
+            val products: List<ProductDto> = service.getProducts()
             val favs = service.getFavourites(
-                authHeader = "Bearer $token",
                 userIdFilter = "eq.$userId"
             )
             val favSet = favs.mapNotNull { it.product_id }.toSet()
@@ -70,6 +70,12 @@ fun DetailsScreen(
             }
             allProducts = mapped
             current = mapped.firstOrNull { it.id == productId } ?: mapped.firstOrNull()
+        } catch (e: java.io.IOException) {
+            // Отсутствует соединение с интернетом
+            errorMessage = "Нет соединения с интернетом"
+        } catch (e: Exception) {
+            // Ошибка сервера или парсинга
+            errorMessage = "Ошибка загрузки: ${e.message}"
         } finally {
             isLoading = false
         }
@@ -80,9 +86,9 @@ fun DetailsScreen(
         scope.launch {
             try {
                 val service = RetrofitInstance.userManagementService
+
                 if (isFav) {
                     service.addFavourite(
-                        authHeader = "Bearer $token",
                         body = FavouriteRequest(
                             user_id = userId,
                             product_id = product.id
@@ -90,7 +96,6 @@ fun DetailsScreen(
                     )
                 } else {
                     service.deleteFavourite(
-                        authHeader = "Bearer $token",
                         userIdFilter = "eq.$userId",
                         productIdFilter = "eq.${product.id}"
                     )
@@ -106,6 +111,18 @@ fun DetailsScreen(
     }
 
     val product = current
+
+    // Диалог ошибки
+    if (errorMessage != null) {
+        AlertDialog(
+            onDismissRequest = { errorMessage = null },
+            title = { Text("Ошибка") },
+            text = { Text(errorMessage ?: "") },
+            confirmButton = {
+                TextButton(onClick = { errorMessage = null }) { Text("OK") }
+            }
+        )
+    }
 
     Scaffold(
         containerColor = Color(0xFFF5F7FB)
@@ -215,6 +232,7 @@ fun DetailsScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Горизонтальный скролл с миниатюрами товаров (задание 10)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -232,9 +250,7 @@ fun DetailsScreen(
                                         else
                                             Color(0xFFF2F4F7)
                                     )
-                                    .clickable {
-                                        current = p
-                                    },
+                                    .clickable { current = p },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Image(
@@ -258,8 +274,9 @@ fun DetailsScreen(
 
                     Spacer(modifier = Modifier.height(6.dp))
 
+                    // Описание товара из базы данных
                     Text(
-                        text = product.description, // описание из базы
+                        text = product.description,
                         fontSize = 13.sp,
                         color = Color(0xFF555555)
                     )
@@ -277,9 +294,7 @@ fun DetailsScreen(
                             .size(52.dp)
                             .clip(CircleShape)
                             .background(Color.White)
-                            .clickable {
-                                toggleFavourite(product, !product.isFavorite)
-                            },
+                            .clickable { toggleFavourite(product, !product.isFavorite) },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -295,7 +310,22 @@ fun DetailsScreen(
                     }
 
                     Button(
-                        onClick = { /* TODO: добавить в корзину */ },
+                        onClick = {
+                            if (userId == null) return@Button
+
+                            scope.launch {
+                                try {
+                                    RetrofitInstance.userManagementService.addToCart(
+                                        CartRequest(
+                                            user_id = userId,
+                                            product_id = product.id,
+                                            count = 1
+                                        )
+                                    )
+                                } catch (_: Exception) {
+                                }
+                            }
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .height(52.dp),

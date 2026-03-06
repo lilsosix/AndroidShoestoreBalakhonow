@@ -4,6 +4,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.shstore.data.RetrofitInstance
+import com.example.shstore.data.service.RecoverRequest
 import kotlinx.coroutines.launch
 
 class ForgotPasswordViewModel : ViewModel() {
@@ -15,15 +16,17 @@ class ForgotPasswordViewModel : ViewModel() {
             try {
                 errorMessage.value = null
 
-                val response = RetrofitInstance.userManagementService
-                    .recoverPassword(mapOf("email" to email))
+                // Исправлено: authService вместо userManagementService
+                val response = RetrofitInstance.authService
+                    .recoverPassword(RecoverRequest(email = email))
 
                 if (response.isSuccessful) {
-                    // Письмо отправлено – показываем диалог "Проверьте email"
                     showDialog.value = true
                 } else {
                     errorMessage.value = "Ошибка: ${response.code()} ${response.message()}"
                 }
+            } catch (e: java.io.IOException) {
+                errorMessage.value = "Нет соединения с интернетом"
             } catch (e: Exception) {
                 errorMessage.value = "Ошибка сети: ${e.message}"
             }

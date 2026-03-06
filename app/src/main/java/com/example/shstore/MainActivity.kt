@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     NavHost(
                         navController = navController,
-                        startDestination = "home",
+                        startDestination = "onboard1",
                         modifier = Modifier.padding(innerPadding)
                     ) {
                         composable("onboard1") { Onboard1Screen(navController) }
@@ -58,7 +58,6 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // если где‑то нужен просто каталог без параметра
                         composable("catalog") {
                             CatalogScreen(
                                 navController = navController,
@@ -66,12 +65,10 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        // экран избранного
                         composable("favorite") {
                             FavoriteScreen(navController = navController)
                         }
 
-                        // экран деталей товара
                         composable(
                             route = "details/{productId}",
                             arguments = listOf(
@@ -88,7 +85,6 @@ class MainActivity : ComponentActivity() {
                         composable("profile") {
                             val userId = UserSession.userId
                             val accessToken = UserSession.accessToken
-
                             if (userId != null && accessToken != null) {
                                 ProfileScreen(
                                     navController = navController,
@@ -104,7 +100,6 @@ class MainActivity : ComponentActivity() {
                             ForgotPasswordScreen(navController)
                         }
 
-                        // Маршрут для OTP с опциональным параметром name
                         composable(
                             route = "verifyOTP/{email}/{type}?name={name}",
                             arguments = listOf(
@@ -132,6 +127,33 @@ class MainActivity : ComponentActivity() {
                         ) { backStackEntry ->
                             val email = backStackEntry.arguments?.getString("email") ?: ""
                             NewPasswordScreen(navController = navController, email = email)
+                        }
+
+                        // ── Новые маршруты ────────────────────────────────────
+
+                        composable("cart") {
+                            CartScreen(navController = navController)
+                        }
+
+                        composable("checkout") {
+                            CheckoutScreen(navController = navController)
+                        }
+
+                        composable("orders") {
+                            OrdersScreen(navController = navController)
+                        }
+
+                        composable(
+                            route = "detail_order/{orderId}",
+                            arguments = listOf(
+                                navArgument("orderId") { type = NavType.LongType }
+                            )
+                        ) { backStackEntry ->
+                            val orderId = backStackEntry.arguments?.getLong("orderId") ?: 0L
+                            DetailOrderScreen(
+                                navController = navController,
+                                orderId = orderId
+                            )
                         }
                     }
                 }

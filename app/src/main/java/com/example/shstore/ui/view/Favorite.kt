@@ -45,16 +45,13 @@ fun FavoriteScreen(navController: NavHostController) {
             val service = RetrofitInstance.userManagementService
 
             val favs = service.getFavourites(
-                authHeader = "Bearer $token",
                 userIdFilter = "eq.$userId",
-                select = "product_id"
             )
 
             if (favs.isEmpty()) {
                 products = emptyList()
             } else {
                 val allProducts = service.getProducts(
-                    authHeader = "Bearer $token"
                 )
                 val favIds = favs.mapNotNull { it.product_id }.toSet()
                 products = allProducts
@@ -83,7 +80,6 @@ fun FavoriteScreen(navController: NavHostController) {
             try {
                 val service = RetrofitInstance.userManagementService
                 service.deleteFavourite(
-                    authHeader = "Bearer $token",
                     userIdFilter = "eq.$userId",
                     productIdFilter = "eq.${product.id}"
                 )
