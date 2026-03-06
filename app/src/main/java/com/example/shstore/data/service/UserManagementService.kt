@@ -4,15 +4,23 @@ import com.example.shstore.data.model.*
 import retrofit2.Response
 import retrofit2.http.*
 
-const val API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpeWF2eHVobXBwaGhscm9zaHdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NTM0OTYsImV4cCI6MjA4ODAyOTQ5Nn0.V0rf2ij993dmBjbSEvfCOVCegjWaCchr0i5Wu7C-MQY"
 data class ProfileDto(
     val id: String?,
     val user_id: String?,
-    val photo: String?,
     val firstname: String?,
     val lastname: String?,
     val address: String?,
-    val phone: String?
+    val phone: String?,
+    val photo: String?
+)
+
+data class ProductDto(
+    val id: String,
+    val title: String,
+    val cost: Double,
+    val description: String,
+    val category_id: String?,
+    val is_best_seller: Boolean?
 )
 
 data class FavouriteDto(
@@ -21,100 +29,104 @@ data class FavouriteDto(
     val user_id: String?
 )
 
-data class ProductDto(
-    val id: String,
-    val title: String,
-    val category_id: String?,
-    val cost: Double,
-    val description: String,
-    val is_best_seller: Boolean?
-)
-
+data class UpdateCountRequest(val count: Long)
 
 interface UserManagementService {
 
-    // ---------- РЕГИСТРАЦИЯ ----------
-    @Headers("apikey: $API_KEY", "Content-Type: application/json")
-    @POST("auth/v1/signup")
-    suspend fun signUp(@Body request: SignUpRequest): Response<SignUpResponse>
-
-    // ---------- ВХОД ----------
-    @Headers("apikey: $API_KEY", "Content-Type: application/json")
-    @POST("auth/v1/token?grant_type=password")
-    suspend fun signIn(@Body request: SignInRequest): Response<SignInResponse>
-
-    // ---------- ВОССТАНОВЛЕНИЕ ПАРОЛЯ ----------
-    @Headers("apikey: $API_KEY", "Content-Type: application/json")
-    @POST("auth/v1/recover")
-    suspend fun recoverPassword(@Body body: Map<String, String>): Response<Any>
-
-    // ---------- ПРОВЕРКА OTP ----------
-    @Headers("apikey: $API_KEY", "Content-Type: application/json")
-    @POST("auth/v1/verify")
-    suspend fun verifyOTP(@Body request: VerifyOtpRequest): Response<VerifyOtpResponse>
-
-    // ---------- ИЗМЕНЕНИЕ ПАРОЛЯ ----------
-    @Headers("apikey: $API_KEY", "Content-Type: application/json")
-    @PUT("auth/v1/user")
-    suspend fun changePassword(
-        @Header("Authorization") authHeader: String,
-        @Body request: ChangePasswordRequest
-    ): Response<Any>
-
-
-    // ---------- PROFILES ----------
-
-    @Headers("apikey: ${API_KEY}")
-    @GET("rest/v1/profiles")
+    @GET("profiles")
     suspend fun getProfile(
-        @Header("Authorization") authHeader: String,
-        @Query("user_id") userIdFilter: String, // "eq.<uuid>"
-        @Query("select") select: String = "*"
+        @Query("user_id") userIdFilter: String
     ): List<ProfileDto>
 
-    @Headers("apikey: ${API_KEY}", "Content-Type: application/json")
-    @PUT("rest/v1/profiles")
-    suspend fun updateProfile(
-        @Header("Authorization") authHeader: String,
-        @Query("user_id") userIdFilter: String,
-        @Body body: Map<String, Any?>
-    ): Response<Unit>
-    @Headers("apikey: $API_KEY", "Content-Type: application/json", "Prefer: return=representation")
-    @POST("rest/v1/profiles")
+    @POST("profiles")
     suspend fun createProfile(
-        @Header("Authorization") authHeader: String,
         @Body body: ProfileCreateRequest
-    ): Response<ProfileDto>
+    ): Response<Unit>
+
+    @PATCH("profiles")
+    @Headers("Prefer: return=minimal")
+    suspend fun updateProfile(
+        @Query("user_id") userIdFilter: String,
+        @Body body: UpdateProfileRequest
+    ): Response<Unit>
 
 
-    // ---------- PRODUCTS ----------
+    @GET("products")
+    suspend fun getProducts(): List<ProductDto>
 
-    @Headers("apikey: ${API_KEY}")
-    @GET("rest/v1/products")
-    suspend fun getProducts(
-        @Header("Authorization") authHeader: String,
-        @Query("select") select: String = "*"
+    @GET("products")
+    suspend fun getProductsByCategory(
+        @Query("category_id") categoryIdFilter: String
     ): List<ProductDto>
-    @Headers("apikey: ${API_KEY}")
-    @GET("rest/v1/favourite")
+
+    @GET("cart")
+    suspend fun getCartItems(
+        @Query("user_id") userIdFilter: String,
+        @Query("select") select: String = "*,products(*)"
+    ): List<CartItemDto>
+
+    @POST("cart")
+    suspend fun addToCart(
+        @Body body: CartRequest
+    )
+
+    @PATCH("cart")
+    suspend fun updateCartItemCount(
+        @Query("id") idFilter: String,
+        @Body body: UpdateCountRequest
+    ): Response<Unit>
+
+    @DELETE("cart")
+    suspend fun removeCartItem(
+        @Query("id") idFilter: String
+    ): Response<Unit>
+
+    @DELETE("cart")
+    suspend fun clearCart(
+        @Query("user_id") userIdFilter: String
+    ): Response<Unit>
+
+    @GET("favourite")
     suspend fun getFavourites(
-        @Header("Authorization") authHeader: String,
-        @Query("user_id") userIdFilter: String, // "eq.<uuid>"
-        @Query("select") select: String = "id,product_id,user_id"
+        @Query("user_id") userIdFilter: String
     ): List<FavouriteDto>
 
-    @Headers("apikey: ${API_KEY}", "Content-Type: application/json")
-    @POST("rest/v1/favourite")
+    @POST("favourite")
     suspend fun addFavourite(
-        @Header("Authorization") authHeader: String,
         @Body body: FavouriteRequest
     ): Response<Unit>
 
-    @Headers("apikey: ${API_KEY}")
-    @DELETE("rest/v1/favourite")
+    @DELETE("favourite")
     suspend fun deleteFavourite(
-        @Header("Authorization") authHeader: String,
-        @Query("user_id") userIdFilter: String, // "eq.<uuid>"
-        @Query("product_id") productIdFilter: String // "eq.<uuid>"
+        @Query("user_id") userIdFilter: String,
+        @Query("product_id") productIdFilter: String
+    ): Response<Unit>
+
+    @GET("orders")
+    suspend fun getOrders(
+        @Query("user_id") userIdFilter: String,
+        @Query("select") select: String = "*,order_status(*)",
+        @Query("order") order: String = "created_at.desc"
+    ): List<OrderDto>
+
+    @POST("orders")
+    suspend fun createOrder(
+        @Body body: CreateOrderRequest
+    ): Response<List<OrderDto>>
+
+    @PATCH("orders")
+    suspend fun updateOrderStatus(
+        @Query("id") idFilter: String,
+        @Body body: Map<String, String?>
+    ): Response<Unit>
+
+    @GET("orders_items")
+    suspend fun getOrderItems(
+        @Query("order_id") orderIdFilter: String
+    ): List<OrderItemDto>
+
+    @POST("orders_items")
+    suspend fun createOrderItems(
+        @Body body: List<CreateOrderItemRequest>
     ): Response<Unit>
 }

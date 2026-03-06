@@ -21,13 +21,13 @@ class SignUpViewModel : ViewModel() {
                 isLoading.value = true
                 errorMessage.value = null
 
-                val response = RetrofitInstance.userManagementService.signUp(
-                    SignUpRequest(email, password)
+                // Исправлено: authService вместо userManagementService
+                val response = RetrofitInstance.authService.signUp(
+                    SignUpRequest(email = email, password = password)
                 )
                 if (response.isSuccessful) {
                     val encodedName = URLEncoder.encode(name, StandardCharsets.UTF_8.toString())
-                    val encodedPassword = URLEncoder.encode(password, StandardCharsets.UTF_8.toString())
-                    navController.navigate("verifyOTP/$email/signup?name=$encodedName&password=$encodedPassword")
+                    navController.navigate("verifyOTP/$email/signup?name=$encodedName")
                 } else {
                     errorMessage.value = when (response.code()) {
                         400 -> "Пользователь с таким email уже существует"

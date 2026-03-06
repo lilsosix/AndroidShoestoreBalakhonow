@@ -87,10 +87,8 @@ fun CatalogScreen(
             try {
                 val service = RetrofitInstance.userManagementService
                 val products: List<ProductDto> = service.getProducts(
-                    authHeader = "Bearer $token"
                 )
                 val favs = service.getFavourites(
-                    authHeader = "Bearer $token",
                     userIdFilter = "eq.$sessionUserId"
                 )
                 val favSet = favs.mapNotNull { it.product_id }.toSet()
@@ -135,7 +133,6 @@ fun CatalogScreen(
                 val service = RetrofitInstance.userManagementService
                 if (newFavState) {
                     service.addFavourite(
-                        authHeader = "Bearer $token",
                         body = FavouriteRequest(
                             user_id = sessionUserId,
                             product_id = product.id
@@ -143,7 +140,6 @@ fun CatalogScreen(
                     )
                 } else {
                     service.deleteFavourite(
-                        authHeader = "Bearer $token",
                         userIdFilter = "eq.$sessionUserId",
                         productIdFilter = "eq.${product.id}"
                     )

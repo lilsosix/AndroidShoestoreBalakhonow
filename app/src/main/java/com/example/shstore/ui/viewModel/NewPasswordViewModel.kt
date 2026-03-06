@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.example.shstore.data.RetrofitInstance
 import com.example.shstore.data.UserSession
-import com.example.shstore.data.model.ChangePasswordRequest
+import com.example.shstore.data.service.UpdatePasswordRequest
 import kotlinx.coroutines.launch
 
 class NewPasswordViewModel : ViewModel() {
@@ -38,12 +38,10 @@ class NewPasswordViewModel : ViewModel() {
     fun changePassword(email: String, navController: NavController) {
         viewModelScope.launch {
             try {
-                // Валидация
                 if (password.value != confirmPassword.value) {
                     errorMessage.value = "Пароли не совпадают"
                     return@launch
                 }
-
                 if (password.value.length < 6) {
                     errorMessage.value = "Пароль должен содержать минимум 6 символов"
                     return@launch
@@ -52,39 +50,29 @@ class NewPasswordViewModel : ViewModel() {
                 isLoading.value = true
                 errorMessage.value = null
 
-                // Получаем токен из сессии
                 val accessToken = UserSession.accessToken
                 if (accessToken == null) {
                     errorMessage.value = "Ошибка авторизации. Токен не найден"
                     return@launch
                 }
 
-                // Создаем запрос на смену пароля с email и новым паролем
-                val changePasswordRequest = ChangePasswordRequest(
-                    email = email,
-                    newPassword = password.value
-                )
-
-                // Формируем заголовок авторизации
-                val authHeader = "Bearer $accessToken"
-
-                // Вызываем метод с правильными параметрами
-                val response = RetrofitInstance.userManagementService.changePassword(
-                    authHeader = authHeader,
-                    request = changePasswordRequest
+                // Исправлено: authService.updatePassword вместо userManagementService.changePassword
+                val response = RetrofitInstance.authService.updatePassword(
+                    authHeader = "Bearer $accessToken",
+                    body = UpdatePasswordRequest(password = password.value)
                 )
 
                 if (response.isSuccessful) {
-                    // Пароль успешно сменён – очищаем сессию и отправляем на экран входа
                     UserSession.userId = null
                     UserSession.accessToken = null
-
-                    navController.navigate("sign_in") {
+                    navController.navigate("login") {
                         popUpTo("new_password") { inclusive = true }
                     }
                 } else {
                     errorMessage.value = "Ошибка: ${response.code()} - ${response.message()}"
                 }
+            } catch (e: java.io.IOException) {
+                errorMessage.value = "Нет соединения с интернетом"
             } catch (e: Exception) {
                 errorMessage.value = "Ошибка сети: ${e.message}"
             } finally {
